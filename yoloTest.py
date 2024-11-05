@@ -14,7 +14,6 @@ model = YOLO("yolov8s.pt").to(device)  # Load model and set to use CUDA if avail
 
 # Initialize the computer camera
 cap = cv2.VideoCapture(0)  # 0 is usually the default camera, you may need to change this index to 1 or 2 to find your camera
-
 # Real-time object detection
 try:
     while True:
