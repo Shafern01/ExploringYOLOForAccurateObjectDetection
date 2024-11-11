@@ -1,0 +1,15 @@
+# data.yaml
+
+# Path to the root directory of your BDD100K dataset
+path: C:\Users\natha\.cache\kagglehub\datasets\solesensei\solesensei_bdd100k\versions\2  # Replace with your actual path
+
+# Paths to the images and labels
+train: images/train
+val: images/val
+test: images/test  # Optional, if you have a test set
+
+# Number of classes in the BDD100K dataset
+nc: 10  # Replace with the correct number of classes if it differs
+
+# List of class names (example names; replace or adjust to match BDD100K classes)
+names: ["pedestrian", "rider","car","truck","bus", "train", "motorcycle","bicycle", "traffic light", "traffic sign"]

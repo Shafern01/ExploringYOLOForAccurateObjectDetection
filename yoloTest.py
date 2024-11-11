@@ -5,9 +5,9 @@ from ultralytics import YOLO
 import kagglehub
 
 # Download latest version
-path = kagglehub.dataset_download("solesensei/solesensei_bdd100k")
+#bddDataset = kagglehub.dataset_download("solesensei/solesensei_bdd100k")
 
-print("Path to dataset files:", path)
+#print("Path to dataset files:", bddDataset)
 
 
 # Force CUDA if available
@@ -16,6 +16,10 @@ print(f"Using device: {device}")
 
 # Load YOLOv8 model and move to the selected device
 model = YOLO("yolov8s.pt").to(device)  # Load model and set to use CUDA if available
+
+
+#training results
+results = model.train(data="C:/school/ML project files/yoloTestCharm/data.yaml", epochs=30, imgsz=640)
 
 # Initialize the computer camera
 cap = cv2.VideoCapture(0)  # 0 is usually the default camera, you may need to change this index to 1 or 2 to find your camera
@@ -54,3 +58,4 @@ finally:
     # Release the camera and clear windows
     cap.release()
     cv2.destroyAllWindows()
+
