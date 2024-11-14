@@ -42,27 +42,30 @@ def process_json_files(annotation_dir, image_dir, output_dir):
             with open(json_path, "r") as f:
                 json_data = json.load(f)
 
-            image_name = json_data["name"]
-            image_path = os.path.join(image_dir, image_name)
+            # Assuming json_data is a list of dictionaries
+            for item in json_data:
+                image_name = item["name"]
+                image_path = os.path.join(image_dir, image_name)
 
-            # Get image dimensions (you can use PIL or OpenCV to get these)
-            from PIL import Image
-            img = Image.open(image_path)
-            img_width, img_height = img.size
+                # Get image dimensions (you can use PIL or OpenCV to get these)
+                from PIL import Image
+                img = Image.open(image_path)
+                img_width, img_height = img.size
 
-            # Convert to YOLO format
-            yolo_annotations = convert_to_yolo_format(json_data, img_width, img_height)
+                # Convert to YOLO format
+                yolo_annotations = convert_to_yolo_format(item, img_width, img_height)
 
-            # Write YOLO annotations to a text file
-            txt_file_path = os.path.join(output_dir, f"{os.path.splitext(image_name)[0]}.txt")
-            with open(txt_file_path, "w") as txt_file:
-                for line in yolo_annotations:
-                    txt_file.write(line + "\n")
+                # Write YOLO annotations to a text file
+                txt_file_path = os.path.join(output_dir, f"{os.path.splitext(image_name)[0]}.txt")
+                with open(txt_file_path, "w") as txt_file:
+                    for line in yolo_annotations:
+                        txt_file.write(line + "\n")
+
 
 
 # Set directories
-annotation_dir = "C:/Users/natha/.cache/kagglehub/datasets/marquis03/bdd100k/versions/1/train"  # Directory containing JSON files
-image_dir = "C:/Users/natha/.cache/kagglehub/datasets/marquis03/bdd100k/versions/1/train"  # Directory containing image files
+annotation_dir = "C:/Users/natha/.cache/kagglehub/datasets/marquis03/bdd100k/versions/1/train/annotations"  # Directory containing JSON files
+image_dir = "C:/Users/natha/.cache/kagglehub/datasets/marquis03/bdd100k/versions/1/train/images"  # Directory containing image files
 output_dir = "C:/school/ML project files/yoloTestCharm/outputImages"  # Directory to store YOLO format .txt files
 
 process_json_files(annotation_dir, image_dir, output_dir)
