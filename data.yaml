@@ -4,9 +4,13 @@
 path: C:\Users\natha\.cache\kagglehub\datasets\marquis03\bdd100k\versions\1  # Replace with your actual path
 
 # Paths to the images and labels
-train: C:\Users\natha\.cache\kagglehub\datasets\marquis03\bdd100k\versions\1\train
-val: C:\Users\natha\.cache\kagglehub\datasets\marquis03\bdd100k\versions\1\val
-test: C:\Users\natha\.cache\kagglehub\datasets\marquis03\bdd100k\versions\1\test # Optional, if you have a test set
+train:
+    images: C:\Users\natha\.cache\kagglehub\datasets\marquis03\bdd100k\versions\1\train
+    labels: C:\Users\natha\.cache\kagglehub\datasets\marquis03\bdd100k\versions\1\train\labels
+val:
+  images: C:\Users\natha\.cache\kagglehub\datasets\marquis03\bdd100k\versions\1\val
+  labels: C:\Users\natha\.cache\kagglehub\datasets\marquis03\bdd100k\versions\1\val\labels
+#test: C:\Users\natha\.cache\kagglehub\datasets\marquis03\bdd100k\versions\1\test # Optional, if you have a test set
 
 # Number of classes in the BDD100K dataset
 nc: 10  # Replace with the correct number of classes if it differs

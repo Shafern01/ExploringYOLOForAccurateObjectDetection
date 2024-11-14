@@ -61,11 +61,9 @@ def process_json_files(annotation_dir, image_dir, output_dir):
                     for line in yolo_annotations:
                         txt_file.write(line + "\n")
 
-
-
 # Set directories
 annotation_dir = "C:/Users/natha/.cache/kagglehub/datasets/marquis03/bdd100k/versions/1/train/annotations"  # Directory containing JSON files
 image_dir = "C:/Users/natha/.cache/kagglehub/datasets/marquis03/bdd100k/versions/1/train/images"  # Directory containing image files
-output_dir = "C:/school/ML project files/yoloTestCharm/outputImages"  # Directory to store YOLO format .txt files
+output_dir = "C:/school/ML project files/yoloTestCharm/outputValAnnotation"  # Directory to store YOLO format .txt files
 
 process_json_files(annotation_dir, image_dir, output_dir)
