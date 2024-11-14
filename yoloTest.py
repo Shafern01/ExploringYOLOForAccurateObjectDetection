@@ -5,9 +5,9 @@ from ultralytics import YOLO
 import kagglehub
 
 # Download latest version
-#bddDataset = kagglehub.dataset_download("solesensei/solesensei_bdd100k")
+#path = kagglehub.dataset_download("marquis03/bdd100k")
 
-#print("Path to dataset files:", bddDataset)
+#print("Path to dataset files:", path)
 
 
 # Force CUDA if available
