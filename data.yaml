@@ -1,17 +1,14 @@
 # data.yaml
 
 # Path to the root directory of your BDD100K dataset
-path: C:\Users\natha\.cache\kagglehub\datasets\marquis03\bdd100k\versions\1  # Replace with your actual path
+# path: C:\Users\natha\.cache\kagglehub\datasets\marquis03\bdd100k\versions\1  # Replace with your actual path
 
 # Paths to the images and labels
-train:
-    images: C:\Users\natha\.cache\kagglehub\datasets\marquis03\bdd100k\versions\1\train
-    labels: C:\Users\natha\.cache\kagglehub\datasets\marquis03\bdd100k\versions\1\train\labels
-val:
-  images: C:\Users\natha\.cache\kagglehub\datasets\marquis03\bdd100k\versions\1\val
-  labels: C:\Users\natha\.cache\kagglehub\datasets\marquis03\bdd100k\versions\1\val\labels
+train: "C:/Users/natha/.cache/kagglehub/datasets/marquis03/bdd100k/versions/1/train"
+   # labels: C:\Users\natha\.cache\kagglehub\datasets\marquis03\bdd100k\versions\1\train\labels
+val: "C:/Users/natha/.cache/kagglehub/datasets/marquis03/bdd100k/versions/1/val"
+  #labels: C:\Users\natha\.cache\kagglehub\datasets\marquis03\bdd100k\versions\1\val\labels
 #test: C:\Users\natha\.cache\kagglehub\datasets\marquis03\bdd100k\versions\1\test # Optional, if you have a test set
-
 # Number of classes in the BDD100K dataset
 nc: 10  # Replace with the correct number of classes if it differs
 
