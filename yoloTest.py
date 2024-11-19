@@ -1,6 +1,6 @@
-import cv2
 import torch
 from ultralytics import YOLO
+import cv2
 
 if __name__ == '__main__':
     # Ensure CUDA if available
@@ -30,10 +30,13 @@ if __name__ == '__main__':
         for result in inference_results:
             boxes = result.boxes  # Bounding boxes
             for box in boxes:
-                class_id = int(box.cls)
+                class_id = int(box.cls.item())
                 label = classes[class_id]
-                print(f"Class: {label}, Confidence: {box.conf:.2f}")
-                print(f"Bounding box: {box.xywh}")  # Center x, y, width, height
+                confidence = box.conf.item()
+                bbox = box.xywh.tolist()  # Convert Tensor to list for safe formatting
+
+                print(f"Class: {label}, Confidence: {confidence:.2f}")
+                print(f"Bounding box: {bbox}")  # Center x, y, width, height
 
     except Exception as e:
         print(f"Error during inference: {e}")
@@ -58,7 +61,7 @@ if __name__ == '__main__':
 
             # Process the predictions
             for result in results[0].boxes:
-                x1, y1, x2, y2 = map(int, result.xyxy.tolist())
+                x1, y1, x2, y2 = map(int, result.xyxy[0].tolist())  # Safely convert Tensor to list
                 class_id = int(result.cls.item())
                 confidence = float(result.conf.item())
                 label = trained_model.names[class_id]
