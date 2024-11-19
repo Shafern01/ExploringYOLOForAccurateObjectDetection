@@ -15,12 +15,30 @@ if __name__ == '__main__':
     # Train the model
     try:
         print("Training YOLO model...")
-        results = model.train(data="C:/school/ML project files/yoloTestCharm/data.yaml",
-                              batch=16, epochs=50, imgsz=320)
+        results = model.train(data="C:/school/ML project files/yoloTestCharm/data.yaml", batch=16, epochs=10, imgsz=320)
         print("Training complete.")
     except Exception as e:
         print(f"Error during training: {e}")
         exit()
+
+    # Load the trained YOLO model
+    #print("Loading the trained YOLO model for inference.")
+    #trained_model = YOLO("path/to/best.pt").to(device)  # Replace with the path to your weights file
+
+    # Run inference
+   # print("Running inference on test images.")
+    #inference_results = trained_model.predict(source="path/to/inference/images", conf=0.5, save=True)
+
+    # Display or process the inference results
+    for result in inference_results:
+        # Each 'result' object holds details for one image
+        boxes = result.boxes  # Bounding boxes
+        classes = result.names  # Class labels
+
+        # Print each detected object with its coordinates and label
+        for box in boxes:
+            print(f"Class: {classes[int(box.cls)]}, Confidence: {box.conf:.2f}")
+            print(f"Bounding box: {box.xywh}")  # Center x, y, width, height
 
     # Initialize the camera
     cap = cv2.VideoCapture(0)
