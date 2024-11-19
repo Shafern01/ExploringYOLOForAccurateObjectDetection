@@ -86,23 +86,33 @@ def compare_with_ground_truth(predictions, ground_truth):
     accuracy = matched_detections / total_ground_truth if total_ground_truth > 0 else 0
     return accuracy
 
+
 # Run inference on static images
 def static_inference(image_paths, ground_truth):
     results = []
     for image_path in image_paths:
         img = cv2.imread(image_path)
-        predictions = trained_model.predict(source=img, stream=True)
+        predictions = trained_model.predict(source=img)
         detections = []
-        for det in predictions:
-            detections.append({
-                'class': det['class'],
-                'confidence': det['confidence'],
-                'box': det['box']
-            })
 
+        # Extract bounding boxes, class IDs, and confidence scores
+        for result in predictions:
+            boxes = result.boxes.xyxy.cpu().numpy()  # Bounding box coordinates in [x1, y1, x2, y2]
+            confs = result.boxes.conf.cpu().numpy()  # Confidence scores
+            class_ids = result.boxes.cls.cpu().numpy()  # Class IDs
+
+            for box, conf, cls_id in zip(boxes, confs, class_ids):
+                detections.append({
+                    'class': trained_model.names[int(cls_id)],  # Map class ID to class name
+                    'confidence': float(conf),
+                    'box': box.tolist()  # Convert NumPy array to list
+                })
+
+        # Match ground truth to image filename
         filename = os.path.basename(image_path)
         gt = ground_truth.get(filename, [])
 
+        # Compare with ground truth
         accuracy = compare_with_ground_truth(detections, gt)
 
         results.append({
@@ -112,6 +122,7 @@ def static_inference(image_paths, ground_truth):
             'accuracy': accuracy
         })
     return results
+
 
 # Run real-time detection
 def realtime_detection(frames_to_capture=50):
@@ -127,20 +138,29 @@ def realtime_detection(frames_to_capture=50):
             print("Failed to read frame from camera.")
             break
 
-        predictions = trained_model.predict(source=frame, stream=True)
+        predictions = trained_model.predict(source=frame)
         detections = []
-        for det in predictions:
-            detections.append({
-                'class': det['class'],
-                'confidence': det['confidence'],
-                'box': det['box']
-            })
 
+        # Process YOLO predictions
+        for result in predictions:
+            boxes = result.boxes.xyxy.cpu().numpy()  # Bounding box coordinates
+            confs = result.boxes.conf.cpu().numpy()  # Confidence scores
+            class_ids = result.boxes.cls.cpu().numpy()  # Class IDs
+
+            for box, conf, cls_id in zip(boxes, confs, class_ids):
+                detections.append({
+                    'class': trained_model.names[int(cls_id)],  # Map class ID to class name
+                    'confidence': float(conf),
+                    'box': box.tolist()  # Convert NumPy array to list
+                })
+
+        # Save the frame to the live feed directory
         save_path = os.path.join(live_feed_save_path, f"frame_{frame_count}.jpg")
         cv2.imwrite(save_path, frame)
 
         results.append({'frame': frame_count, 'detections': detections})
 
+        # Visualize real-time detections
         for det in detections:
             box = det['box']
             label = det['class']
@@ -158,6 +178,7 @@ def realtime_detection(frames_to_capture=50):
     cap.release()
     cv2.destroyAllWindows()
     return results
+
 
 # Main program
 if __name__ == "__main__":
