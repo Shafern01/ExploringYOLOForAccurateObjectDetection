@@ -3,7 +3,6 @@ import json
 import cv2
 import torch
 from ultralytics import YOLO
-from ultralytics.utils import bbox_iou
 
 # Initialize YOLO model
 model_path = r"C:\school\ML project files\yoloTestCharm\runs\detect\train\weights\best.pt"
@@ -16,7 +15,23 @@ live_feed_save_path = r"C:\school\ML project files\yoloTestCharm\Captured live f
 
 # Function to calculate Intersection over Union (IoU)
 def calculate_iou(box1, box2):
-    return bbox_iou(torch.tensor(box1).unsqueeze(0), torch.tensor(box2).unsqueeze(0)).item()
+    x1 = max(box1[0], box2[0])
+    y1 = max(box1[1], box2[1])
+    x2 = min(box1[2], box2[2])
+    y2 = min(box1[3], box2[3])
+
+    # Compute the area of intersection rectangle
+    intersection = max(0, x2 - x1) * max(0, y2 - y1)
+
+    # Compute the area of both bounding boxes
+    box1_area = (box1[2] - box1[0]) * (box1[3] - box1[1])
+    box2_area = (box2[2] - box2[0]) * (box2[3] - box2[1])
+
+    # Compute the IoU
+    union = box1_area + box2_area - intersection
+    iou = intersection / union if union > 0 else 0
+
+    return iou
 
 # Load ground truth annotations
 def load_ground_truth(annotations_path):
@@ -28,7 +43,7 @@ def load_ground_truth(annotations_path):
                 image_name = data['name']
                 boxes = []
                 for label in data['labels']:
-                    if 'box2d' in label:  # Ensure the label has a bounding box
+                    if 'box2d' in label:
                         box = label['box2d']
                         boxes.append({
                             'class': label['category'],
@@ -37,7 +52,7 @@ def load_ground_truth(annotations_path):
                 ground_truth[image_name] = boxes
     return ground_truth
 
-# Function to compare predictions with ground truth
+# Compare predictions with ground truth
 def compare_with_ground_truth(predictions, ground_truth):
     matched_detections = 0
     total_ground_truth = len(ground_truth)
@@ -66,11 +81,9 @@ def static_inference(image_paths, ground_truth):
                 'box': det['box']
             })
 
-        # Match ground truth to image filename
         filename = os.path.basename(image_path)
         gt = ground_truth.get(filename, [])
 
-        # Compare with ground truth
         accuracy = compare_with_ground_truth(detections, gt)
 
         results.append({
@@ -104,13 +117,11 @@ def realtime_detection(frames_to_capture=50):
                 'box': det['box']
             })
 
-        # Save the frame to the live feed directory
         save_path = os.path.join(live_feed_save_path, f"frame_{frame_count}.jpg")
         cv2.imwrite(save_path, frame)
 
         results.append({'frame': frame_count, 'detections': detections})
 
-        # Visualize real-time detections
         for det in detections:
             box = det['box']
             label = det['class']
@@ -131,25 +142,19 @@ def realtime_detection(frames_to_capture=50):
 
 # Main program
 if __name__ == "__main__":
-    # Load ground truth annotations
     print("Loading ground truth annotations...")
     ground_truth = load_ground_truth(ground_truth_path)
 
-    # Get all test image paths
     print("Collecting test image paths...")
     test_image_paths = [os.path.join(test_images_path, file) for file in os.listdir(test_images_path) if file.endswith(".jpg")]
 
-    # Run static inference
     print("Running static inference on test images...")
     static_results = static_inference(test_image_paths, ground_truth)
 
-    # Print static results
     for result in static_results:
         print(f"Image: {result['filename']}, Accuracy: {result['accuracy']:.2f}")
 
-    # Run real-time detection
     print("Running real-time detection...")
     realtime_results = realtime_detection()
 
-    # Save real-time results
-    print("Real-time detection completed and frames saved.")
+    print("Real-time detection completed and frames saved at:", live_feed_save_path)
