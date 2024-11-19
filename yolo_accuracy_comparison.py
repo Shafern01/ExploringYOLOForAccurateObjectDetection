@@ -33,24 +33,43 @@ def calculate_iou(box1, box2):
 
     return iou
 
-# Load ground truth annotations
+
 def load_ground_truth(annotations_path):
     ground_truth = {}
     for file in os.listdir(annotations_path):
         if file.endswith(".json"):
             with open(os.path.join(annotations_path, file), 'r') as f:
                 data = json.load(f)
-                image_name = data['name']
-                boxes = []
-                for label in data['labels']:
-                    if 'box2d' in label:
-                        box = label['box2d']
-                        boxes.append({
-                            'class': label['category'],
-                            'box': [box['x1'], box['y1'], box['x2'], box['y2']]
-                        })
-                ground_truth[image_name] = boxes
+
+                # Check if 'data' is a list
+                if isinstance(data, list):
+                    for annotation in data:
+                        image_name = annotation.get('name', None)
+                        if image_name:
+                            boxes = []
+                            for label in annotation.get('labels', []):
+                                if 'box2d' in label:
+                                    box = label['box2d']
+                                    boxes.append({
+                                        'class': label['category'],
+                                        'box': [box['x1'], box['y1'], box['x2'], box['y2']]
+                                    })
+                            ground_truth[image_name] = boxes
+                else:
+                    # If 'data' is a dictionary (original assumption)
+                    image_name = data.get('name', None)
+                    if image_name:
+                        boxes = []
+                        for label in data.get('labels', []):
+                            if 'box2d' in label:
+                                box = label['box2d']
+                                boxes.append({
+                                    'class': label['category'],
+                                    'box': [box['x1'], box['y1'], box['x2'], box['y2']]
+                                })
+                        ground_truth[image_name] = boxes
     return ground_truth
+
 
 # Compare predictions with ground truth
 def compare_with_ground_truth(predictions, ground_truth):
