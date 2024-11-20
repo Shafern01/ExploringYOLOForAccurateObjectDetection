@@ -1,6 +1,11 @@
 import torch
 from ultralytics import YOLO
 import cv2
+"""
+This program performs object detection using a YOLOv8 model. It supports batch inference on a dataset 
+and real-time detection via a connected camera. The program dynamically utilizes GPU (if available) 
+for enhanced performance and provides bounding box annotations with class labels and confidence scores.
+"""
 
 if __name__ == '__main__':
     # Ensure CUDA if available

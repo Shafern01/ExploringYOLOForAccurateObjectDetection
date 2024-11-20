@@ -4,6 +4,17 @@ import cv2
 import torch
 from ultralytics import YOLO
 
+"""
+This program integrates a YOLOv8 model for object detection and performs:
+1. Static image inference: Evaluates test images against ground truth annotations, computes accuracy, and compares predictions.
+2. Real-time detection: Captures live frames from a camera, processes detections, and saves annotated frames to a directory.
+
+Features:
+- IoU calculation for prediction-ground truth matching.
+- Visualization of real-time detections with bounding boxes and confidence scores.
+- Frame capture and storage for further analysis.
+"""
+
 # Initialize YOLO model
 model_path = r"C:\school\ML project files\yoloTestCharm\runs\detect\train\weights\best.pt"
 trained_model = YOLO(model_path)

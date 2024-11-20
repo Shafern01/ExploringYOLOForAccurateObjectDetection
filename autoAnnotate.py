@@ -1,6 +1,12 @@
 import json
 import os
 
+"""
+This script converts bounding box annotations from JSON format to YOLO format. 
+It processes annotation files, retrieves image dimensions, and outputs normalized YOLO annotations 
+to text files, suitable for training YOLO models.
+"""
+
 # Mapping of categories to class ids (you can adjust this based on your dataset)
 category_map = {
     "pedestrian": 0,
