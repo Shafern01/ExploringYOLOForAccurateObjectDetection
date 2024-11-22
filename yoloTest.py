@@ -7,7 +7,8 @@ def batch_inference(model_path, dataset_path, conf=0.5, save=True):
         source=dataset_path,
         conf=conf,
         save=save,
-        stream=True
+        stream=True,
+        save_dir = "C:/Users/eslut/ExploringYOLOForAccurateObjectDetection/ourTest_Images"
     )
     for result in results:
         boxes = result.boxes
