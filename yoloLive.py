@@ -1,8 +1,12 @@
 from yolo_utils import initialize_model, visualize_detections
 import cv2
 
-def live_detection(model_path, confidence_threshold=0.5, max_frames=50):
+
+def live_detection(model_path, confidence_threshold=0.5, max_frames=float('inf')):
+    # Initialize the YOLO model
     model, device = initialize_model(model_path)
+
+    # Open the webcam
     cap = cv2.VideoCapture(0)
     if not cap.isOpened():
         print("Error: Unable to access the camera.")
@@ -10,24 +14,40 @@ def live_detection(model_path, confidence_threshold=0.5, max_frames=50):
 
     frame_count = 0
     print("Press 'q' to quit.")
+
     while frame_count < max_frames:
         ret, frame = cap.read()
         if not ret:
-            print("Failed to grab frame.")
+            print("Error: Failed to grab a frame.")
             break
+
+        # Perform detection
         results = model.predict(source=frame, conf=confidence_threshold)
-        detections = [{
-            'box': box.xyxy[0].tolist(),
-            'class': int(box.cls.item()),
-            'confidence': float(box.conf.item())
-        } for box in results[0].boxes]
+        detections = [
+            {
+                'box': box.xyxy[0].tolist(),
+                'class': int(box.cls.item()),
+                'confidence': float(box.conf.item())
+            } for box in results[0].boxes
+        ]
+
+        # Visualize detections
         visualize_detections(frame, detections, model.names)
+
+        # Display the frame
         cv2.imshow("YOLOv8 Real-Time Detection", frame)
+
+        # Break if 'q' is pressed
         if cv2.waitKey(1) & 0xFF == ord('q'):
+            print("Exiting detection loop.")
             break
+
         frame_count += 1
+
+    # Release resources
     cap.release()
     cv2.destroyAllWindows()
+
 
 if __name__ == '__main__':
     model_path = r"C:\school\ML project files\yoloTestCharm\runs\detect\train\weights\best.pt"
