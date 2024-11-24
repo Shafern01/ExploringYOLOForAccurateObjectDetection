@@ -1,16 +1,36 @@
-# data.yaml
-
-# Path to the root directory of your BDD100K dataset
-# path: C:\Users\natha\.cache\kagglehub\datasets\marquis03\bdd100k\versions\1  # Replace with your actual path
-
-# Paths to the images and labels
-train: "C:/Users/natha/.cache/kagglehub/datasets/marquis03/bdd100k/versions/1/train"
-   # labels: C:\Users\natha\.cache\kagglehub\datasets\marquis03\bdd100k\versions\1\train\labels
-val: "C:/Users/natha/.cache/kagglehub/datasets/marquis03/bdd100k/versions/1/val"
-  #labels: C:\Users\natha\.cache\kagglehub\datasets\marquis03\bdd100k\versions\1\val\labels
-#test: C:\Users\natha\.cache\kagglehub\datasets\marquis03\bdd100k\versions\1\test # Optional, if you have a test set
-# Number of classes in the BDD100K dataset
-nc: 10  # Replace with the correct number of classes if it differs
-
-# List of class names (example names; replace or adjust to match BDD100K classes)
-names: ["pedestrian", "rider","car","truck","bus", "train", "motorcycle","bicycle", "traffic light", "traffic sign"]
+names:
+- pedestrian
+- rider
+- car
+- truck
+- bus
+- train
+- motorcycle
+- bicycle
+- traffic light
+- traffic sign
+- lane
+- person
+- drivable area
+- bike
+- motor
+nc: 15
+test: null
+train: C:\school\ML project files\yoloTestCharm\fractional_images.txt
+val: C:/Users/natha/.cache/kagglehub/datasets/marquis03/bdd100k/versions/1/val/images
+weights:
+  bicycle: 0.3320387211697646
+  bike: 5.737665822874798e-05
+  bus: 3.535335617224921e-05
+  car: 5.823963537290324e-07
+  drivable area: 3.3001244475894467e-06
+  lane: 8.039951019399316e-07
+  motor: 0.000139570710874218
+  motorcycle: 0.3320387211697646
+  pedestrian: 0.3320387211697646
+  person: 4.5193167531374906e-06
+  rider: 9.213061075742636e-05
+  traffic light: 2.2250281189967405e-06
+  traffic sign: 1.730765572049126e-06
+  train: 0.003532326820954942
+  truck: 1.3916707371212734e-05
