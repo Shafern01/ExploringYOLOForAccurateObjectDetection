@@ -1,116 +1,159 @@
-from ultralytics import YOLO
-import torch
-import yaml
-import os
+from ultralytics import YOLO  # Import YOLO model framework
+import torch  # PyTorch deep learning framework
+import yaml  # For reading YAML configuration files
+import os  # For file and directory operations
+from pathlib import Path  # For platform-independent path handling
+from datetime import datetime  # For timestamps
 
 
-def load_weights(data_yaml_path):
+def get_next_train_number():
     """
-    Loads class weights from data.yaml file
+    Determines the next available training run number by scanning existing directories.
+    Returns:
+        int: Next available training number (1 if no previous runs exist)
     """
-    with open(data_yaml_path, 'r') as f:
-        data = yaml.safe_load(f)
-    return data.get('weights', {})
+    runs_dir = "runs"
+    if not os.path.exists(runs_dir):
+        return 1
+
+    # Get all directories that start with 'train'
+    existing_dirs = [d for d in os.listdir(runs_dir)
+                     if os.path.isdir(os.path.join(runs_dir, d))
+                     and d.startswith("train")]
+
+    if not existing_dirs:
+        return 1
+
+    # Extract numbers from directory names, handling 'train' (1) and 'trainX' cases
+    numbers = [int(d.replace("train", "")) if d != "train" else 1
+               for d in existing_dirs]
+
+    return max(numbers) + 1
 
 
-def train_model(data_yaml_path, epochs, batch_size, img_size, validate_interval=10, patience=5):
+def train_model(data_yaml_path, epochs, batch_size, img_size, validate_interval=5, patience=15):
+    """
+    Main training function for YOLOv8 model with optimized parameters.
 
-    print("Initializing YOLOv8 model training...")
+    Args:
+        data_yaml_path (str): Path to data configuration file
+        epochs (int): Number of training epochs
+        batch_size (int): Batch size for training
+        img_size (int): Input image size
+        validate_interval (int): Epochs between validations
+        patience (int): Early stopping patience
+    """
+    # Set up training directory
+    train_number = get_next_train_number()
+    run_dir = os.path.join("runs", f"train{'' if train_number == 1 else train_number}")
+    os.makedirs(run_dir, exist_ok=True)
+    print(f"Created training directory: {run_dir}")
+
+    # Configure device and GPU settings
     device = 'cuda' if torch.cuda.is_available() else 'cpu'
     print(f"Using device: {device}")
 
-    # GPU Optimization
     if device == 'cuda':
-        print("Optimizing GPU settings...")
-        torch.cuda.empty_cache()
-        torch.backends.cudnn.benchmark = True
-        torch.backends.cuda.matmul.allow_tf32 = True
-        torch.backends.cudnn.allow_tf32 = True
+        # Optimize GPU settings for training
+        torch.cuda.empty_cache()  # Clear GPU memory
+        torch.backends.cudnn.benchmark = True  # Enable cuDNN auto-tuner
+        torch.backends.cuda.matmul.allow_tf32 = True  # Enable TF32 for better performance
+        torch.backends.cudnn.allow_tf32 = True  # Enable TF32 for cuDNN
 
-    # Load class weights
-    class_weights = load_weights(data_yaml_path)
-    if class_weights:
-        print("Loaded class weights from data.yaml")
-    else:
-        print("Warning: No class weights found in data.yaml")
-
-    # Create output directory
-    output_dir = "runs/train"
-    os.makedirs(output_dir, exist_ok=True)
-
-    # Load YOLOv8 model - using small model for 4060
-    model = YOLO('yolov8s.pt')  # Using small model to fit in 8GB VRAM
-
-    # Training tracking
-    best_val_loss = float('inf')
-    no_improvement_count = 0
-
-    # Warmup epochs calculation
-    warmup_epochs = max(3, int(epochs * 0.1))
+    # Initialize model and training variables with optimized settings
+    model = YOLO('yolov8s.pt')  # Load pre-trained YOLOv8 small model
+    best_metric = 0  # Track best validation metric
+    no_improvement_count = 0  # Counter for early stopping
+    warmup_epochs = max(10, int(epochs * 0.15))  # Increased warmup period
     print(f"Using {warmup_epochs} warmup epochs")
 
+    # Main training loop
     for epoch in range(1, epochs + 1):
         print(f"\nStarting epoch {epoch}/{epochs}...")
 
-        # Dynamic learning rate
-        if epoch <= warmup_epochs:
-            current_lr = 0.001
-        else:
-            current_lr = 0.002
+        # Create directory for this epoch
+        epoch_dir = os.path.join(run_dir, f'epoch_{epoch}')
+        os.makedirs(epoch_dir, exist_ok=True)
 
-        # Train for one epoch
+        # Dynamic learning rate calculation with lower initial rate
+        if epoch <= warmup_epochs:
+            current_lr = 0.0003  # Lower initial learning rate for better stability
+        else:
+            # Gradually increase learning rate after warmup
+            current_lr = min(0.002, 0.0003 + (0.002 - 0.0003) * (epoch - warmup_epochs) / (epochs - warmup_epochs))
+
+        # Train for one epoch with optimized parameters
         results = model.train(
+            # Dataset configuration
             data=data_yaml_path,
             epochs=1,
             batch=batch_size,
             imgsz=img_size,
-            save=False,
-            lr0=current_lr,
-            lrf=0.01,
-            momentum=0.937,
-            weight_decay=0.0005,
+
+            # Training optimization parameters
+            save=False,  # Don't save intermediate checkpoints
+            lr0=current_lr,  # Initial learning rate
+            lrf=0.005,  # Final learning rate factor
+            momentum=0.937,  # SGD momentum/Adam beta1
+            weight_decay=0.001,  # Weight decay coefficient
+
+            # Warmup configuration
             warmup_epochs=warmup_epochs,
             warmup_momentum=0.8,
-            warmup_bias_lr=0.1,
-            box=7.5,
-            cls=0.5,
-            dfl=1.5,
-            pose=12.0,
-            kobj=1.0,
-            label_smoothing=0.0,
-            nbs=64,
-            overlap_mask=True,
-            mask_ratio=4,
-            dropout=0.0,
-            val=True,
-            optimizer='AdamW',
-            cos_lr=True,
-            augment=True,
-            mosaic=1.0,
-            mixup=0.2,
-            degrees=5.0,
-            translate=0.2,
-            scale=0.2,
-            shear=0.2,
-            perspective=0.0,
-            flipud=0.1,
-            fliplr=0.5,
-            verbose=True,
-            amp=True,
-            fraction=1.0,
-            workers=4,  # Reduced workers for 16GB RAM
-            device=device,
-            project=output_dir,
-            name=f'exp_epoch_{epoch}',
-            exist_ok=True,
-            pretrained=True,
-            cache=True,
-            close_mosaic=10,
-            plots=True,
+            warmup_bias_lr=0.05,
+
+            # Enhanced training techniques
+            label_smoothing=0.1,  # Label smoothing epsilon
+            dropout=0.2,  # Increased dropout for regularization
+
+            # Optimizer settings
+            optimizer='AdamW',  # Use AdamW optimizer
+            cos_lr=True,  # Use cosine learning rate scheduler
+
+            # Enhanced augmentation parameters
+            augment=True,  # Enable augmentation
+            mosaic=0.9,  # Increased mosaic probability
+            mixup=0.4,  # Increased mixup probability
+            degrees=15.0,  # More aggressive rotation
+            translate=0.2,  # Translation range
+            scale=0.5,  # More aggressive scaling
+            shear=0.3,  # Shear range
+            perspective=0.001,  # Perspective range
+            flipud=0.3,  # Increased vertical flip probability
+            fliplr=0.5,  # Horizontal flip probability
+
+            # Hardware utilization
+            verbose=True,  # Enable verbose output
+            amp=True,  # Enable automatic mixed precision
+            workers=2,  # Number of worker threads
+            device=device,  # Training device
+
+            # Output configuration
+            project=run_dir,  # Project directory
+            name=f'epoch_{epoch}',  # Run name
+            exist_ok=True,  # Allow overwriting
+            pretrained=True,  # Use pretrained weights
+            cache=False,  # Disable caching
+            close_mosaic=warmup_epochs,  # Disable mosaic after warmup
+            plots=True,  # Generate plots
+            rect=False,  # Disable rectangular training
+
+            # Enhanced augmentation
+            hsv_h=0.015,  # HSV hue augmentation
+            hsv_s=0.7,  # HSV saturation augmentation
+            hsv_v=0.4,  # HSV value augmentation
+            copy_paste=0.3,  # Increased copy-paste augmentation
+
+            # Multi-scale training for better scale invariance
+            multi_scale=True
         )
 
-        # Perform validation
-        if epoch % validate_interval == 0:
+        # Create weights directory for model checkpoints
+        weights_dir = Path(os.path.join(epoch_dir, 'weights'))
+        weights_dir.mkdir(parents=True, exist_ok=True)
+
+        # Validation phase
+        if epoch % validate_interval == 0 or epoch == epochs:
             print(f"\nValidating model after epoch {epoch}...")
             val_results = model.val(
                 data=data_yaml_path,
@@ -118,40 +161,41 @@ def train_model(data_yaml_path, epochs, batch_size, img_size, validate_interval=
                 imgsz=img_size,
             )
 
-            val_loss = val_results.box_loss + val_results.cls_loss + val_results.dfl_loss
+            # Extract and display validation metrics
+            val_map50 = val_results.maps[0]  # mAP at IoU 0.5
+            val_map5095 = val_results.maps[1]  # mAP at IoU 0.5-0.95
+            print(f"Validation Metrics: mAP@50={val_map50:.3f}, mAP@50-95={val_map5095:.3f}")
 
-            print(f"Validation Loss: {val_loss:.5f}")
-            print(f"Metrics: mAP50={val_results.maps[0]:.3f}, mAP50-95={val_results.maps[1]:.3f}")
-
-            # Track best validation loss
-            if val_loss < best_val_loss:
-                best_val_loss = val_loss
+            # Model saving logic
+            if val_map50 > best_metric:
+                best_metric = val_map50
                 no_improvement_count = 0
-                best_model_path = os.path.join(output_dir, f'best_model_epoch_{epoch}.pt')
+                best_model_path = os.path.join(weights_dir, f'best_model_epoch_{epoch}.pt')
                 model.save(best_model_path)
                 print(f"New best model saved: {best_model_path}")
             else:
                 no_improvement_count += 1
-                print(f"No improvement in validation loss. Count: {no_improvement_count}/{patience}")
+                print(f"No improvement in validation mAP@50. Count: {no_improvement_count}/{patience}")
 
+            # Early stopping check
             if no_improvement_count >= patience:
                 print("\nEarly stopping triggered. Training terminated.")
                 break
 
-    print("\nTraining completed successfully!")
+    print(f"\nTraining completed successfully! Results saved in: {run_dir}")
     return model
 
 
 if __name__ == '__main__':
-    # Configuration optimized for RTX 4060 8GB
+    # Optimized training configuration
     config = {
-        'data_yaml_path': r"C:\school\ML project files\yoloTestCharm\data.yaml",
-        'epochs': 40,  # Reduced epochs for faster training
-        'batch_size': 42,
-        'img_size': 512,  # Balanced size for 4060
-        'validate_interval': 5,
-        'patience': 8,
+        'data_yaml_path': r"C:\school\ML project files\yoloTestCharm\data.yaml",  # Path to dataset config
+        'epochs': 100,  # Doubled number of epochs
+        'batch_size': 28,  # Reduced batch size for stability
+        'img_size': 448,  # Input image size
+        'validate_interval': 5,  # Validate every 5 epochs
+        'patience': 15,  # Increased patience for better convergence
     }
 
-    # Train the model
+    # Start training
     trained_model = train_model(**config)
