@@ -294,7 +294,7 @@ if __name__ == '__main__':
         'yolo_task': 'detect',
         'mode': 'train',
         'data_yaml_path': r"C:\school\ML project files\yoloTestCharm\data.yaml",
-        'epochs': 300,  # Increased to allow full convergence
+        'epochs': 220,  # Increased to allow full convergence
         'batch_size': 12,  # Optimized for 8GB VRAM
         'img_size': 640,  # Standard YOLO size
         'validate_interval': 2,  # Frequent validation
