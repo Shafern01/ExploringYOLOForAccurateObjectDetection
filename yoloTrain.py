@@ -1,43 +1,44 @@
-# Standard library imports for deep learning and data processing
-from ultralytics import YOLO  # YOLO implementation for object detection
+# Standard library imports
+from ultralytics import YOLO  # Import YOLO implementation for object detection
 import torch  # PyTorch deep learning framework
 import yaml  # YAML file handling for configuration
-import os  # Operating system interface
+import os  # Operating system interface for file operations
 from pathlib import Path  # Object-oriented filesystem paths
-from datetime import datetime  # Time handling
-import matplotlib.pyplot as plt  # Plotting library
-import json  # JSON handling for results
-import numpy as np  # Numerical operations
+from datetime import datetime  # Time handling utilities
+import matplotlib.pyplot as plt  # Plotting library for visualizations
+import json  # JSON handling for reading training results
+import numpy as np  # Numerical operations library
 import gc  # Garbage collection for memory management
 
 
 def clear_system_cache():
     """
-    Comprehensive memory cleanup optimized for RTX 4060 8GB GPU.
-    This function ensures maximum available memory for training by:
-    1. Clearing CUDA cache
-    2. Resetting memory stats
-    3. Setting memory allocation limits
-    4. Optimizing CUDA settings for RTX cards
-    """
-    if torch.cuda.is_available():
-        # Clear both CUDA cache types
-        torch.cuda.empty_cache()  # Releases all unused cached memory
-        torch.cuda.ipc_collect()  # Closes inter-process memory handles
+    Comprehensive function to clear various types of cache before training.
+    Optimized specifically for RTX 4060 8GB GPU.
 
-        # Reset memory tracking statistics
+    This function performs several critical memory management tasks:
+    1. Clears GPU memory caches
+    2. Optimizes CUDA memory settings
+    3. Enables RTX-specific optimizations
+    4. Performs garbage collection
+    """
+    # Clear PyTorch cache if GPU is available
+    if torch.cuda.is_available():
+        # Clear both primary and secondary CUDA caches
+        torch.cuda.empty_cache()  # Releases unused cached memory
+        torch.cuda.ipc_collect()  # Cleans inter-process memory handles
+
+        # Reset all memory tracking statistics
         torch.cuda.reset_peak_memory_stats()  # Clears peak memory tracking
         torch.cuda.reset_accumulated_memory_stats()  # Resets accumulated stats
 
-        # Set memory allocation strategy
-        # 0.85 leaves 15% memory free for overhead and system operations
-        torch.cuda.set_per_process_memory_fraction(0.85)
-        torch.cuda.memory.empty_cache()
+        # Set optimal memory allocation strategy for 8GB VRAM
+        torch.cuda.set_per_process_memory_fraction(0.85)  # Reserve 15% for system operations
+        torch.cuda.memory.empty_cache()  # Additional cache clearing
 
-        # Enable TF32 for better performance on RTX cards
-        # These settings can improve training speed by up to 20%
+        # Enable RTX optimizations
         torch.backends.cudnn.benchmark = True  # Enables cuDNN auto-tuner
-        torch.backends.cuda.matmul.allow_tf32 = True  # Enables TF32 for matrix multiplications
+        torch.backends.cuda.matmul.allow_tf32 = True  # Enables TF32 for matrix operations
         torch.backends.cudnn.allow_tf32 = True  # Enables TF32 for convolutions
 
     # Force Python garbage collection
@@ -46,21 +47,23 @@ def clear_system_cache():
 
 def get_next_train_number():
     """
-    Manages training run numbering system to prevent overwriting previous results.
+    Manages training run numbering by scanning existing directories.
+    Ensures each training run has a unique sequential number.
 
     Returns:
-        int: Next available training number
+        int: Next available training number starting from 1
 
-    Logic:
+    This function:
     1. Checks 'runs' directory for existing training folders
-    2. Extracts numbers from folder names
-    3. Returns max number + 1 for next run
+    2. Extracts numbers from existing folder names
+    3. Returns the next number in sequence
     """
+    # Define the base directory for training runs
     runs_dir = "runs"
     if not os.path.exists(runs_dir):
         return 1
 
-    # Get list of training directories
+    # Get list of existing training directories
     existing_dirs = [d for d in os.listdir(runs_dir)
                      if os.path.isdir(os.path.join(runs_dir, d))
                      and d.startswith("train")]
@@ -68,7 +71,7 @@ def get_next_train_number():
     if not existing_dirs:
         return 1
 
-    # Extract and find max training number
+    # Extract numbers from directory names and find the maximum
     numbers = [int(d.replace("train", "")) if d != "train" else 1
                for d in existing_dirs]
 
@@ -77,29 +80,29 @@ def get_next_train_number():
 
 def plot_training_metrics(results_file, save_dir):
     """
-    Creates comprehensive visualization of training metrics with advanced analytics.
+    Creates comprehensive visualization of training metrics including losses and validation metrics.
+    Generates enhanced visualizations with moving averages and detailed analysis.
 
     Args:
-        results_file (str): Path to training results JSON
-        save_dir (str): Directory to save plots
+        results_file (str): Path to the JSON file containing training results
+        save_dir (str): Directory where the plot will be saved
 
     Generates:
-        2x2 grid of plots showing:
-        1. Training losses with moving averages
-        2. Validation metrics (mAP)
-        3. Learning rate schedule
-        4. Total loss convergence
+        - 2x2 grid of plots showing different aspects of the training process
+        - Includes moving averages for smoother visualization
+        - Saves high-resolution plot to disk
     """
+    # Load training results from JSON file
     with open(results_file, 'r') as f:
         results = json.load(f)
 
-    # Create 2x2 subplot grid
+    # Create a figure with 2x2 subplots
     fig, ((ax1, ax2), (ax3, ax4)) = plt.subplots(2, 2, figsize=(15, 10))
     fig.suptitle('Training Metrics', fontsize=16)
 
-    # Plot 1: Training Losses with moving average for smoothing
+    # Plot 1: Training Losses with moving averages
     epochs = list(range(1, len(results['train/box_loss']) + 1))
-    window = 5  # Moving average window size for smoothing
+    window = 5  # Window size for moving average calculation
 
     # Plot each loss type with its moving average
     for loss_type in ['box_loss', 'cls_loss', 'dfl_loss']:
@@ -116,7 +119,6 @@ def plot_training_metrics(results_file, save_dir):
     ax1.grid(True)
 
     # Plot 2: Validation Metrics (mAP scores)
-    # Filter out zero values which indicate no validation was performed
     val_epochs = [i for i, j in enumerate(results['metrics/mAP50(B)']) if j != 0]
     val_map50 = [j for j in results['metrics/mAP50(B)'] if j != 0]
     val_map50_95 = [j for j in results['metrics/mAP50-95(B)'] if j != 0]
@@ -134,11 +136,10 @@ def plot_training_metrics(results_file, save_dir):
     ax3.set_title('Learning Rate')
     ax3.set_xlabel('Epoch')
     ax3.set_ylabel('Learning Rate')
-    ax3.set_yscale('log')  # Log scale for better visualization of LR decay
+    ax3.set_yscale('log')  # Log scale for better visualization
     ax3.grid(True)
 
     # Plot 4: Total Loss Convergence
-    # Combine all losses to show overall training progress
     total_loss = np.array(results['train/box_loss']) + np.array(results['train/cls_loss']) + np.array(
         results['train/dfl_loss'])
     moving_avg_total = np.convolve(total_loss, np.ones(window) / window, mode='valid')
@@ -149,14 +150,16 @@ def plot_training_metrics(results_file, save_dir):
     ax4.set_ylabel('Total Loss')
     ax4.grid(True)
 
+    # Save the plot with high DPI
     plt.tight_layout()
     plt.savefig(os.path.join(save_dir, 'training_metrics.png'), dpi=300)
     plt.close()
 
 
-def train_model(yolo_task, mode, data_yaml_path, epochs, batch_size, img_size, validate_interval=3, patience=25):
+def train_model(yolo_task, mode, data_yaml_path, epochs, batch_size, img_size, validate_interval=3, patience=30):
     """
     Main training function optimized for high mAP scores on BDD100k dataset.
+    Specifically tuned for RTX 4060 8GB GPU.
 
     Args:
         yolo_task (str): Type of YOLO task ('detect')
@@ -175,9 +178,9 @@ def train_model(yolo_task, mode, data_yaml_path, epochs, batch_size, img_size, v
     train_number = get_next_train_number()
     run_dir = os.path.join("runs", f"train{'' if train_number == 1 else train_number}")
     os.makedirs(run_dir, exist_ok=True)
-    print(f"Training directory: {run_dir}")
+    print(f"Created training directory: {run_dir}")
 
-    # Setup and optimize GPU if available
+    # Setup GPU/CPU device and optimize GPU settings
     device = 'cuda' if torch.cuda.is_available() else 'cpu'
     print(f"Using device: {device}")
 
@@ -186,7 +189,7 @@ def train_model(yolo_task, mode, data_yaml_path, epochs, batch_size, img_size, v
         gpu_memory = torch.cuda.get_device_properties(0).total_memory / 1024 ** 2
         print(f"Total GPU memory: {gpu_memory:.2f} MB")
 
-    # Create temporary YAML configuration
+    # Create temporary YAML file for training configuration
     temp_yaml_path = os.path.join(run_dir, 'temp_data.yaml')
     with open(data_yaml_path, 'r') as f:
         yaml_data = yaml.safe_load(f)
@@ -194,11 +197,12 @@ def train_model(yolo_task, mode, data_yaml_path, epochs, batch_size, img_size, v
     with open(temp_yaml_path, 'w') as f:
         yaml.dump(yaml_data, f)
 
-    # Initialize YOLOv8s model
-    model = YOLO('yolov8s.pt')  # Using small model optimized for RTX 4060 8GB
+    # Initialize model with pre-trained weights
+    model = YOLO('yolov8s.pt')
 
-    # Configure comprehensive training parameters
+    # Configure training parameters
     train_args = dict(
+        # Basic parameters
         data=temp_yaml_path,
         epochs=epochs,
         batch=batch_size,
@@ -210,73 +214,73 @@ def train_model(yolo_task, mode, data_yaml_path, epochs, batch_size, img_size, v
         project=run_dir,
         exist_ok=True,
         pretrained=True,
-        amp=True,  # Automatic Mixed Precision
+        amp=True,
         verbose=True,
         cache=False,
 
-        # Memory optimization parameters
-        workers=2,  # Reduced workers for memory efficiency
-        rect=True,  # Rectangular training
-        profile=True,  # Performance profiling
+        # Memory optimization
+        workers=2,
+        rect=False,  # Disabled to allow shuffling
+        profile=True,
 
-        # Learning rate optimization
-        lr0=0.001,  # Initial learning rate
-        lrf=0.01,  # Final learning rate factor
-        momentum=0.937,  # SGD momentum
-        weight_decay=0.0005,  # Weight decay for regularization
-        warmup_epochs=5,  # Gradual warmup
+        # Learning rate settings
+        lr0=0.0007,  # Reduced initial learning rate
+        lrf=0.0001,  # Modified final LR factor
+        momentum=0.937,
+        weight_decay=0.0007,
+        warmup_epochs=8,
         warmup_momentum=0.8,
         warmup_bias_lr=0.1,
 
-        # Augmentation pipeline optimized for BDD100k
+        # Augmentation pipeline
         augment=True,
-        mosaic=0.9,  # Mosaic augmentation probability
-        mixup=0.5,  # Mixup augmentation probability
-        degrees=15.0,  # Maximum rotation degree
-        translate=0.2,  # Translation factor
-        scale=0.5,  # Scale factor
-        shear=0.2,  # Shear factor
-        perspective=0.0001,  # Perspective factor
-        flipud=0.3,  # Vertical flip probability
-        fliplr=0.5,  # Horizontal flip probability
-        hsv_h=0.015,  # HSV hue augmentation
-        hsv_s=0.7,  # HSV saturation augmentation
-        hsv_v=0.4,  # HSV value augmentation
-        copy_paste=0.3,  # Copy-paste augmentation
+        mosaic=0.6,
+        mixup=0.3,
+        degrees=15.0,
+        translate=0.2,
+        scale=0.4,
+        shear=0.3,
+        perspective=0.0005,
+        flipud=0.3,
+        fliplr=0.5,
+        hsv_h=0.015,
+        hsv_s=0.7,
+        hsv_v=0.4,
+        copy_paste=0.4,
 
-        # Detection optimization
-        conf=0.001,  # Confidence threshold
-        iou=0.6,  # NMS IoU threshold
-        single_cls=False,  # Multi-class detection
+        # Detection parameters
+        conf=0.15,
+        iou=0.55,
+        single_cls=False,
 
         # Loss weights
-        box=1.0,  # Box loss weight
-        cls=0.7,  # Class loss weight
-        dfl=1.3,  # DFL loss weight
+        box=0.6,
+        cls=1.5,
+        dfl=1.0,
 
         # Advanced features
-        close_mosaic=10,  # Disable mosaic in final epochs
-        overlap_mask=True,  # Overlap mask inference
-        cos_lr=True,  # Cosine learning rate scheduling
+        close_mosaic=20,
+        overlap_mask=True,
+        cos_lr=True,
     )
 
     # Execute training with error handling
     try:
         results = model.train(**train_args)
-        print(f"\nTraining completed! Results saved in: {run_dir}")
+        print(f"\nTraining completed successfully! Results saved in: {run_dir}")
 
-        # Generate training visualizations
+        # Generate training visualization plots
         results_file = os.path.join(run_dir, 'results.json')
         if os.path.exists(results_file):
             plot_training_metrics(results_file, run_dir)
         else:
-            print("Warning: Results file not found")
+            print("Warning: Results file not found. Cannot generate training plots.")
 
     except Exception as e:
         print(f"Error during training: {str(e)}")
         raise
     finally:
-        # Cleanup temporary files
+        # Cleanup
         if os.path.exists(temp_yaml_path):
             os.remove(temp_yaml_path)
         clear_system_cache()
@@ -290,12 +294,12 @@ if __name__ == '__main__':
         'yolo_task': 'detect',
         'mode': 'train',
         'data_yaml_path': r"C:\school\ML project files\yoloTestCharm\data.yaml",
-        'epochs': 150,  # Extended training for better convergence
+        'epochs': 300,  # Increased to allow full convergence
         'batch_size': 12,  # Optimized for 8GB VRAM
-        'img_size': 640,  # Standard YOLO input size
-        'validate_interval': 3,  # Frequent validation
-        'patience': 25  # Extended patience for convergence
+        'img_size': 640,  # Standard YOLO size
+        'validate_interval': 2,  # Frequent validation
+        'patience': 30  # Extended patience for better convergence
     }
 
-    # Execute training
+    # Execute training process
     trained_model = train_model(**config)
