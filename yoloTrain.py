@@ -227,7 +227,7 @@ def train_model(yolo_task, mode, data_yaml_path, epochs, batch_size, img_size, v
         lr0=0.0007,  # Reduced initial learning rate
         lrf=0.0001,  # Modified final LR factor
         momentum=0.937,
-        weight_decay=0.0007,
+        weight_decay=0.0007, #prevent overfit
         warmup_epochs=8,
         warmup_momentum=0.8,
         warmup_bias_lr=0.1,

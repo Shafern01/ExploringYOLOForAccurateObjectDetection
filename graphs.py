@@ -129,15 +129,11 @@ metrics_for_convergence = {
 
 # Plot normalized convergence for each metric
 for metric_name, values in metrics_for_convergence.items():
-    if metric_name == 'Loss':
-        # Invert loss values so convergence trends upward like other metrics
-        normalized = 1 - (values - values.min()) / (values.max() - values.min())
-    else:
-        normalized = (values - values.min()) / (values.max() - values.min())
+    normalized = (values - values.min()) / (values.max() - values.min())
 
     # Calculate and plot moving average for smoother visualization
     ma = normalized.rolling(window=10).mean()
-    plt.plot(df['epoch'], ma, label=f'{metric_name} Convergence', linewidth=2)
+    plt.plot(df['epoch'], ma, label=f'{metric_name}', linewidth=2)
 
 plt.title('Training Convergence Analysis')
 plt.xlabel('Epoch')
@@ -162,6 +158,37 @@ for metric_name, values in metrics_for_convergence.items():
 
 plt.savefig(os.path.join(results_dir, 'convergence_analysis.png'), dpi=300, bbox_inches='tight')
 plt.close()
+
+# Precision-Recall Scatter Plot
+plt.figure(figsize=(10, 6))
+plt.scatter(df['metrics/precision(B)'], df['metrics/recall(B)'], c=df['epoch'], cmap='viridis', label='Epoch Progress')
+plt.colorbar(label='Epoch')
+plt.title('Precision vs Recall Across Epochs')
+plt.xlabel('Precision')
+plt.ylabel('Recall')
+plt.grid(True)
+plt.legend()
+plt.savefig(os.path.join(results_dir, 'precision_vs_recall.png'), dpi=300, bbox_inches='tight')
+plt.close()
+
+# Calculate F1 Score
+df['F1_score'] = 2 * (df['metrics/precision(B)'] * df['metrics/recall(B)']) / (df['metrics/precision(B)'] + df['metrics/recall(B)'])
+
+# Plot Precision, Recall, and F1 Score
+plt.figure(figsize=(12, 6))
+plt.plot(df['epoch'], df['metrics/precision(B)'], label='Precision', linewidth=2, color='blue')
+plt.plot(df['epoch'], df['metrics/recall(B)'], label='Recall', linewidth=2, color='orange')
+plt.plot(df['epoch'], df['F1_score'], label='F1 Score', linewidth=2, color='green', linestyle='--')
+plt.title('Precision, Recall, and F1 Score Over Time')
+plt.xlabel('Epoch')
+plt.ylabel('Value')
+plt.legend()
+plt.grid(True)
+plt.savefig(os.path.join(results_dir, 'precision_recall_f1.png'), dpi=300, bbox_inches='tight')
+plt.close()
+
+# Print Summary of F1 Score
+print(f"Maximum F1 Score: {df['F1_score'].max():.4f} at Epoch {df['epoch'][df['F1_score'].idxmax()]}")
 
 # Print summary of generated files
 print(f"All graphs have been saved in the '{results_dir}' directory:")
