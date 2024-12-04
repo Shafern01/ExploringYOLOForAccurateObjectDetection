@@ -78,8 +78,8 @@ def save_comparison_results(results, save_path="C:/school/ML project files/yoloT
 
 if __name__ == "__main__":
     # Paths
-    model_path = r"C:\school\ML project files\yoloTestCharm\runs\detect\train\weights\best.pt"
-    local_images_path = r"C:\school\ML project files\yoloTestCharm/local_images"
+    model_path = r"C:\school\ML project files\yoloTestCharm\runs\train7\train\weights\best.pt"
+    local_images_path = r"C:\school\ML project files\yoloTestCharm\ourTest_Images"
     live_save_dir = r"C:\school\ML project files\yoloTestCharm/live_frames"
     comparison_results_path = r"C:\school\ML project files\yoloTestCharm/comparison_results.json"
 
